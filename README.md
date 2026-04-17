@@ -29,8 +29,16 @@ expression_rescue_pipeline/
 │   └── model_params/
 │       └── proteinmpnn_v_48_020.pt    # Pre-trained weights (6.4 MB)
 └── example/
-    ├── bound_example.pdb              # Example antibody-antigen complex (Adalimumab_variant)
-    └── inputs_example.txt             # Example user-inputs for the notebook
+    ├── bound_example.pdb                         # Example antibody-antigen complex (Adalimumab_variant)
+    ├── inputs_example.txt                        # Example user-inputs for the notebook
+    ├── expression_rescue_example_result.ipynb    # Frozen example run (outputs preserved, read-only reference)
+    └── example_output/                           # Artifacts produced by the example run:
+        ├── heatmap.png                               #   3-panel logit heatmap
+        ├── rescue_ranking.csv                        #   residues ranked by WT unbound logit
+        ├── key_binding_residues.csv                  #   Δ = bound − unbound per residue
+        ├── bound_example_unbound.pdb                 #   antigen-removed complex
+        ├── bound_example_logits.pdb                  #   bound PDB colored by bound logit (B-factor)
+        └── bound_example_unbound_logits.pdb          #   unbound PDB colored by unbound logit (B-factor)
 ```
 
 ## Installation
@@ -41,7 +49,7 @@ Tested with Python 3.10 and CUDA 12.1.
 conda create -n expression_rescue python=3.10 -y
 conda activate expression_rescue
 pip install -r ProteinMPNN/requirements.txt
-pip install jupyter matplotlib seaborn pandas nbformat py3Dmol
+pip install jupyter matplotlib seaborn pandas nbformat py3Dmol "setuptools<81"
 ```
 
 The model weights ship with the repo under `ProteinMPNN/model_params/proteinmpnn_v_48_020.pt` — no separate download needed.
@@ -81,18 +89,18 @@ All written to `<output_dir>/`:
 | `<stem>_logits.pdb` | Bound PDB with B-factor set to the WT bound logit |
 | `<stem>_unbound_logits.pdb` | Unbound PDB with B-factor set to the WT unbound logit |
 
-Step 8 renders both logit-colored structures inline in the notebook via `py3Dmol` (cartoon colored on a blue-white-red B-factor gradient with a shared color scale so the two panels are directly comparable). For a higher-fidelity view, open either file in PyMOL:
+Step 8 renders both logit-colored structures inline in the notebook via `py3Dmol` using a **red-white-blue** gradient (low logit → red = WT disfavored; high logit → blue = WT preferred) with a shared color scale so the two panels are directly comparable. For a higher-fidelity view, open either file in PyMOL:
 
 ```
-pymol output/<stem>_logits.pdb -d 'spectrum b, blue_white_red'
-pymol output/<stem>_unbound_logits.pdb -d 'spectrum b, blue_white_red'
+pymol output/<stem>_logits.pdb -d 'spectrum b, red_white_blue'
+pymol output/<stem>_unbound_logits.pdb -d 'spectrum b, red_white_blue'
 ```
 
 ## How to read the outputs
 
 - **`key_binding_residues.csv`** — residues with large positive Δ are binding-critical. Leave these alone.
 - **`rescue_ranking.csv`** — every rescue residue listed, sorted by `WT_unbound_logit` ascending. The top rows are the positions where the antibody-alone model is least happy with the current residue (i.e. the WT amino acid is the least preferred at that site). `best_aa` is the amino acid with the highest unbound logit at that position, and `logit_diff = best_unbound_logit − WT_unbound_logit`. The `top_k` column flags the positions selected for mutation.
-- **`heatmap.png`** — rows are residues (sorted chain → resnum), columns are the 21-letter alphabet. The red `*` marks the current WT. Dark cells = high logit. The difference panel (coolwarm, centered at 0) is the quickest read: red clumps next to the WT = binding contact, blue clumps = antigen-disfavored AA.
+- **`heatmap.png`** — rows are residues (sorted chain → resnum), columns are the 21-letter alphabet. The red `*` marks the current WT. Dark cells = high logit on the first two panels. The difference panel is diverging red-white-blue centered at 0: **blue** cells next to the WT `*` mark binding contacts (antigen favors that AA); **red** cells mark amino acids the antigen disfavors.
 
 ### Mutation-selection protocol (used in the paper)
 
@@ -103,7 +111,7 @@ pymol output/<stem>_unbound_logits.pdb -d 'spectrum b, blue_white_red'
 
 ## HPC note
 
-The scoring step requires a GPU. On the CSSB SLURM cluster, request a GPU node *before* opening the notebook — **do not run it on the login node**.
+The scoring step requires a GPU.
 
 ```bash
 # Interactive session (recommended for notebook work)
@@ -112,13 +120,13 @@ conda activate expression_rescue
 jupyter notebook
 ```
 
-CPU-only execution works but is very slow (~5 min per scoring call on a small antibody).
+CPU-only execution works but it may be slow.
 
 ## Citations
 
+- *(This repo's companion paper — add citation here after publication.)*
 - Dauparas, J. et al. *Robust deep learning-based protein sequence design using ProteinMPNN.* **Science** 378, 49–56 (2022).
 - Dauparas, J. et al. *Atomic context-conditioned protein sequence design using LigandMPNN.* **Nature Methods** (2025).
-- *(This repo's companion paper — add citation here after publication.)*
 
 ## License
 
