@@ -104,9 +104,10 @@ spectrum b, red_white_blue
 ### Mutation-selection protocol (used in the paper)
 
 1. Run the pipeline and inspect `rescue_ranking.csv`.
-2. Take the **top 3** positions by ascending `WT_unbound_logit` (the positions where the WT amino acid is least favored when the antigen is removed — these are the strongest expression-rescue targets).
-3. At each of those three positions, introduce the `best_aa` substitution (the amino acid with the highest unbound logit). The notebook prints the three mutations in the form `WT{resnum}best_aa` directly below the ranking table, and the same selection is stored in `rescue_ranking.csv` under `top_k=True`.
-4. `top_k_rescue` in the user-inputs cell controls the size of the highlighted set if you want a different cutoff.
+2. **Exclude key-binding residues first.** Step 5 flags positions with Δ = logit_bound − logit_unbound > `binding_logit_threshold` (default 1.0) as binding-critical; these appear with `is_key_binding=True` in `rescue_ranking.csv` and are **automatically skipped** when the notebook picks the top-K. Mutating them would risk the antigen interface, so they are never rescue targets.
+3. From the remaining non-binding residues, take the **top 3** by ascending `WT_unbound_logit` (the positions where the WT amino acid is least favored when the antigen is removed — the strongest expression-rescue targets that don't touch the binding interface).
+4. At each selected position, introduce the `best_aa` substitution (the amino acid with the highest unbound logit). The notebook prints the mutations in the form `WT{resnum}best_aa` directly below the ranking table, and the same selection is stored in `rescue_ranking.csv` under `top_k=True`.
+5. `top_k_rescue` in the user-inputs cell controls the size of the selected set if you want a different cutoff.
 
 ## Citations
 
