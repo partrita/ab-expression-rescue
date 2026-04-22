@@ -88,6 +88,10 @@ The notebook is self-contained: each step generates the inputs for the next, so 
 
 - **PDB file** — standard ATOM records. Chain letters matter: antibody and antigen chains must differ. Multi-model files are not supported (pass the first model only).
 - **Residue spec** — `"<chain_letter><resnum>"`, e.g. `"B30"` = residue 30 on chain B. Insertion codes or chain ID with more than 1 character are not supported by this selector; if your PDB uses them, renumber or rechain first.
+- **Pre-specified key-binding residues** *(optional)* — if you already know certain positions are binding-critical (experimental mutagenesis, epitope mapping, prior literature, etc.), supply them as `user_key_binding_residues` using the same `"<chain><resnum>"` syntax, e.g. `["D52", "D53"]`. Residues listed here but not in `rescue_residues` are ignored with a warning. Control how these interact with the Δ-based detection via `user_key_binding_mode`:
+  - `"union"` *(default)* — final key-binding set = pipeline-detected ∪ user-supplied (most conservative; preserves both sources).
+  - `"user_only"` — final set = user-supplied only (pipeline Δ detection is ignored; use when you want to override the model entirely with experimental knowledge).
+  - Both flags are ignored if `user_key_binding_residues` is empty `[]`, in which case only Δ-based detection is used.
 
 ## Outputs
 
