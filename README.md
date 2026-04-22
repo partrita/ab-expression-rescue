@@ -26,6 +26,16 @@ The **final output is a short list of rescue mutations** (e.g. `V52S, S108L, T10
 
 This pipeline reads per-residue structural context (backbone geometry + local environment) to produce the logits that drive every downstream decision. If the input complex has low resolution, misfolded regions, poor quality, etc., the resulting rescue mutations may be unreliable. Prefer high-resolution crystal/cryo-EM structures, or high-quality predicted structures with energy-minimization whose binding interface has been validated. 
 
+## How mutations are picked
+
+The notebook runs an automated 3-stage selection (this is the protocol used in the companion paper):
+
+1. **Score both states.** ProteinMPNN single-AA scoring on the input complex (bound) and on the same coordinates with the antigen chain(s) removed (unbound). Yields per-residue 21-AA logits for each state.
+2. **Protect key-binding residues.** Positions with Δ = logit_bound − logit_unbound > `binding_logit_threshold` are flagged as binding-critical. Optionally merged with user-supplied residues via `user_key_binding_mode` (`"union"` or `"user_only"`). These positions are **excluded** from the candidate pool — mutating them would risk the antigen interface.
+3. **Rank the rest and pick top-K.** Remaining residues are sorted ascending by the WT amino acid's unbound logit (worst-preferred WT first — the strongest rescue targets). The top `top_k_rescue` positions (default 3) are selected, and at each one the amino acid with the highest unbound logit (`best_aa`) becomes the proposed substitution.
+
+The final list appears in the green "Final rescue mutations" panel at the end of Step 6 and in `rescue_ranking.csv` rows with `top_k=True`.
+
 ## Directory layout
 
 ```
@@ -80,7 +90,7 @@ The model weights ship with the repo under `ProteinMPNN/model_params/proteinmpnn
    - `top_k_rescue`: how many top-ranked positions Step 6 highlights as the mutations to introduce (default `3`)
    - `user_key_binding_residues` *(optional)*: positions you already know are binding-critical from experiments / prior knowledge; leave empty `[]` to rely solely on the pipeline's Δ-based detection
    - `user_key_binding_mode`: `"union"` (default — pipeline ∪ user) or `"user_only"` (trust only user input). Ignored when `user_key_binding_residues` is empty.
-4. **Run all cells.** When it finishes, scroll to Step 6: the **green "Final rescue mutations" box** is the final rescue mutations that our pipeline recommends.
+4. **Run all cells.** When it finishes, scroll to Step 6: the **green "Final rescue mutations" box** shows the substitutions the pipeline recommends.
 
 The notebook is self-contained: each step generates the inputs for the next, so re-running from the top is safe. 
 
@@ -88,22 +98,19 @@ The notebook is self-contained: each step generates the inputs for the next, so 
 
 - **PDB file** — standard ATOM records. Chain letters matter: antibody and antigen chains must differ. Multi-model files are not supported (pass the first model only).
 - **Residue spec** — `"<chain_letter><resnum>"`, e.g. `"B30"` = residue 30 on chain B. Insertion codes or chain ID with more than 1 character are not supported by this selector; if your PDB uses them, renumber or rechain first.
-- **Pre-specified key-binding residues** *(optional)* — if you already know certain positions are binding-critical (experimental mutagenesis, epitope mapping, prior literature, etc.), supply them as `user_key_binding_residues` using the same `"<chain><resnum>"` syntax, e.g. `["D52", "D53"]`. Residues listed here but not in `rescue_residues` are ignored with a warning. Control how these interact with the Δ-based detection via `user_key_binding_mode`:
-  - `"union"` *(default)* — final key-binding set = pipeline-detected ∪ user-supplied (most conservative; preserves both sources).
-  - `"user_only"` — final set = user-supplied only (pipeline Δ detection is ignored; use when you want to override the model entirely with experimental knowledge).
-  - Both flags are ignored if `user_key_binding_residues` is empty `[]`, in which case only Δ-based detection is used.
+- **Pre-specified key-binding residues** *(optional)* — if you already know certain positions are binding-critical (experimental mutagenesis, epitope mapping, prior literature, etc.), supply them as `user_key_binding_residues` using the same `"<chain><resnum>"` syntax, e.g. `["D52", "D53"]`. They merge with the Δ-based detection per `user_key_binding_mode` (`"union"` or `"user_only"` — see [How mutations are picked](#how-mutations-are-picked) for the exact semantics). Leave the list empty `[]` to skip this option entirely. Residues listed here but not in `rescue_residues` are ignored with a warning.
 
 ## Outputs
 
-**You can see major outputs at jupyter notebook output cells in rendered version**, and all raw outputs written to `<output_dir>/`. **The file most users need is `rescue_ranking.csv` (rows with `top_k=True`)**; other outputs are for user's understanding and further analysis if needed.
+Major outputs also render inline in the notebook cells. All raw files are written to `<output_dir>/`, listed below. **The only file most users need is `rescue_ranking.csv`** (rows with `top_k=True`); the rest support deeper analysis or downstream visualization.
 
-### Key output (raw output in `<output_dir>/`)
+### Key output
 
 | File | Contents |
 |------|----------|
 | `rescue_ranking.csv` | All rescue residues ranked by WT unbound logit ascending. **Rows with `top_k=True` are the selected mutations** — the same ones shown in the green Step 6 panel. `is_key_binding=True` rows were skipped. |
 
-### Additional outputs (raw output in `<output_dir>/`)
+### Additional outputs
 
 | File | Contents |
 |------|----------|
@@ -122,23 +129,9 @@ spectrum b, red_white_blue
 
 ## How to read the outputs
 
-- **`key_binding_residues.csv`** — residues with large positive Δ are binding-critical. Leave these alone.
-- **`rescue_ranking.csv`** — every rescue residue listed, sorted by `WT_unbound_logit` ascending. The top rows are the positions where the antibody-alone model is least happy with the current residue (i.e. the WT amino acid is the least preferred at that site). `best_aa` is the amino acid with the highest unbound logit at that position, and `logit_diff = best_unbound_logit − WT_unbound_logit`. The `top_k` column flags the positions selected for mutation.
+- **`rescue_ranking.csv`** — every rescue residue listed, sorted by `WT_unbound_logit` ascending. The top rows are the positions where the antibody-alone model is least happy with the current residue. `best_aa` is the amino acid with the highest unbound logit at that position, and `logit_diff = best_unbound_logit − WT_unbound_logit`. `top_k=True` flags the positions the pipeline selected for mutation.
+- **`key_binding_residues.csv`** — residues with large positive Δ are binding-critical and were excluded from rescue selection. The `is_final_key_binding` column reflects the final protected set (Δ-based + user-supplied, combined per `user_key_binding_mode`).
 - **`heatmap.png`** — rows are residues (sorted chain → resnum), columns are the 21-letter alphabet. The red `*` marks the current WT. Dark cells = high logit on the first two panels. The difference panel is diverging red-white-blue centered at 0: **blue** cells next to the WT `*` mark potential binding contacts (antigen favors that AA); **red** cells mark amino acids the antigen disfavors.
-
-### Mutation-selection protocol (used in the paper)
-
-1. Run the pipeline and inspect `rescue_ranking.csv`.
-2. **Exclude key-binding residues first.** Step 5 builds the *final* key-binding set from two sources:
-   - **Δ-based detection** (always on): positions with Δ = logit_bound − logit_unbound > `binding_logit_threshold` (default 1.0).
-   - **User-supplied list** (optional, via `user_key_binding_residues`): positions you already know are binding-critical from experiments, epitope mapping, or prior literature. The pipeline merges them with the Δ-based set according to `user_key_binding_mode`:
-     - `"union"` *(default)* — `pipeline ∪ user`
-     - `"user_only"` — trust only the user list, ignore Δ detection.
-
-   The final set is stored in `key_binding_residues.csv` under `is_final_key_binding`. All residues in this set are **automatically skipped** when Step 6 picks the top-K. Mutating them would risk the antigen interface, so they are never rescue targets.
-3. From the remaining non-binding residues, take the **top 3** by ascending `WT_unbound_logit` (the positions where the WT amino acid is least favored when the antigen is removed — the strongest expression-rescue targets that don't touch the binding interface).
-4. At each selected position, introduce the `best_aa` substitution (the amino acid with the highest unbound logit). The notebook prints the mutations in the form `WT{resnum}best_aa` directly below the ranking table, and the same selection is stored in `rescue_ranking.csv` under `top_k=True`.
-5. `top_k_rescue` in the user-inputs cell controls the size of the selected set if you want a different cutoff.
 
 ## Citations
 
