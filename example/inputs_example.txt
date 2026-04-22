@@ -1,7 +1,7 @@
 # Example inputs for the expression-rescue pipeline.
 # Paste these into the "User inputs" cell of expression_rescue.ipynb.
 
-bound_pdb_path   : example/bound_example.pdb
+bound_pdb_path   : HALP_example.pdb
 antigen_chain_ids: ["A", "B", "C"]   # antigen is a homotrimer
 
 # Rescue residues: antibody CDR-H2 + CDR-H3 positions on the heavy chain (chain D).
@@ -46,3 +46,14 @@ rescue_residues:
 # Analysis knobs (defaults used in the paper).
 binding_logit_threshold: 1.0   # Δ = WT_bound - WT_unbound > threshold => key binding residue (Step 5)
 top_k_rescue: 3                # Step 6 highlights the K positions with the smallest WT unbound logit
+
+# Optional: if you already know some residues are binding-critical (from
+# experiments or prior literature), list them here. Empty [] means "use the
+# pipeline's Δ-based detection only".
+user_key_binding_residues: ["D52", "D53"]
+
+# How to combine user-supplied residues with the pipeline detection:
+#   "union"     — pipeline ∪ user (default, most conservative)
+#   "user_only" — user only; pipeline Δ detection ignored
+# Only consulted when user_key_binding_residues is non-empty.
+user_key_binding_mode: "union"
