@@ -135,7 +135,8 @@ spectrum b, red_white_blue
 
 ## Citations
 
-- *(This repo's companion paper — citation will be added here after publication.)*
+- Chun, C., Sohn, B.-K., Ki, H., Jo, J. H., et al. *Landscape-scale navigation unlocks antibody CDR structural logic 
+for AI-guided rescue and therapeutic optimization.* **bioRxiv** https://doi.org/10.64898/2026.04.21.719857 (2026).
 - Dauparas, J. et al. *Robust deep learning-based protein sequence design using ProteinMPNN.* **Science** 378, 49–56 (2022).
 - Dauparas, J. et al. *Atomic context-conditioned protein sequence design using LigandMPNN.* **Nature Methods** (2025).
 
