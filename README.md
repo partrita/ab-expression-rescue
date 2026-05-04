@@ -8,7 +8,7 @@ ProteinMPNN-based analysis to propose CDR single-point mutations that may rescue
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CSSB-SNU/ab-expression-rescue/blob/main/example/expression_rescue_example_result.ipynb)
 
 <p align="center">
-<img width="3763" height="2583" alt="Image" src="https://github.com/user-attachments/assets/78993180-b3f5-4e32-a530-602e044a1a9c">
+<img width="70%" height="70%" alt="Image" src="https://github.com/user-attachments/assets/78993180-b3f5-4e32-a530-602e044a1a9c">
 </p>
 
 ## Overview
