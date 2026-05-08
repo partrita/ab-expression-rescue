@@ -70,21 +70,23 @@ expression_rescue_pipeline/
 
 ## Installation
 
-Tested with Python 3.10 and CUDA 12.1.
+Requires [pixi](https://pixi.sh).
 
 ```bash
-conda create -n expression_rescue python=3.10 -y
-conda activate expression_rescue
-pip install -r ProteinMPNN/requirements.txt
-pip install jupyter matplotlib seaborn pandas nbformat py3Dmol "setuptools<81"
+# Install all dependencies and setup environment
+pixi install
 ```
 
 The model weights ship with the repo under `ProteinMPNN/model_params/proteinmpnn_v_48_020.pt` — no separate download needed.
 
 ## Usage
 
-1. Allocate a GPU (The scoring step requires a GPU. CPU-only execution works but it may be slow).
-2. Open `expression_rescue.ipynb` in Jupyter.
+1. **Start the environment**:
+   ```bash
+   pixi run jupyter-lab
+   ```
+2. Allocate a GPU (The scoring step requires a GPU. CPU-only execution works but it may be slow).
+3. Open `expression_rescue.ipynb` in Jupyter.
 3. Edit the **User inputs** cell:
    - `bound_pdb_path`: path to the antibody–antigen complex PDB
    - `antigen_chain_ids`: list of chain letters that make up the antigen, e.g. `["A"]`
