@@ -314,20 +314,22 @@ class ProteinMPNN(torch.nn.Module):
                 )[:, 0]
                 logits = self.W_out(h_V_t)  # [B,21]
                 log_probs = torch.nn.functional.log_softmax(logits, dim=-1)  # [B,21]
-                
-                if float(temperature) == 0.0: ######## changed to get T=0 as input as well.
+
+                if (
+                    float(temperature) == 0.0
+                ):  ######## changed to get T=0 as input as well.
                     # probs = torch.nn.functional.softmax(
                     # (logits + bias_t), dim=-1
                     # ) # [B,21]
                     probs = torch.zeros_like(logits)
                     max_idx = torch.argmax(logits + bias_t, dim=-1)
-                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0) # [B,21]
-                  
+                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0)  # [B,21]
+
                 else:
                     probs = torch.nn.functional.softmax(
                         (logits + bias_t) / temperature, dim=-1
                     )  # [B,21]
-                    
+
                 probs_sample = probs[:, :20] / torch.sum(
                     probs[:, :20], dim=-1, keepdim=True
                 )  # hard omit X #[B,20]
@@ -453,16 +455,17 @@ class ProteinMPNN(torch.nn.Module):
                     ).float()  # [B,21]
                     total_logits += symmetry_weights[t] * logits
 
-        
-                if float(temperature) == 0.0: ######## changed to get T=0 as input as well. In this case, always get the max prob aa
+                if (
+                    float(temperature) == 0.0
+                ):  ######## changed to get T=0 as input as well. In this case, always get the max prob aa
                     probs = torch.zeros_like(logits)
                     max_idx = torch.argmax(logits + bias_t, dim=-1)
-                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0) # [B,21]
+                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0)  # [B,21]
                 else:
                     probs = torch.nn.functional.softmax(
                         (total_logits + bias_t) / temperature, dim=-1
                     )  # [B,21]
-                
+
                 probs_sample = probs[:, :20] / torch.sum(
                     probs[:, :20], dim=-1, keepdim=True
                 )  # hard omit X #[B,20]
@@ -491,18 +494,10 @@ class ProteinMPNN(torch.nn.Module):
         use_sequence - False using backbone info only
         """
         B_decoder = feature_dict["batch_size"]
-        S_true_enc = feature_dict[
-            "S"
-        ]
-        mask_enc = feature_dict[
-            "mask"
-        ]
-        chain_mask_enc = feature_dict[
-            "chain_mask"
-        ]
-        randn = feature_dict[
-            "randn"
-        ]
+        S_true_enc = feature_dict["S"]
+        mask_enc = feature_dict["mask"]
+        chain_mask_enc = feature_dict["chain_mask"]
+        randn = feature_dict["randn"]
         B, L = S_true_enc.shape
         device = S_true_enc.device
 
@@ -518,10 +513,10 @@ class ProteinMPNN(torch.nn.Module):
             S_true = torch.clone(S_true_enc)
             if use_sequence:  # NOTE : flipped from upstream `if not use_sequence` so that use_sequence=True conditions residue i on all other native amino acids (idx decoded last); use_sequence=False leaves idx as the only informed position.
                 order_mask = torch.zeros(chain_mask_enc.shape[1], device=device).float()
-                order_mask[idx] = 1.
+                order_mask[idx] = 1.0
             else:
                 order_mask = torch.ones(chain_mask_enc.shape[1], device=device).float()
-                order_mask[idx] = 0.
+                order_mask[idx] = 0.0
             decoding_order = torch.argsort(
                 (order_mask + 0.0001) * (torch.abs(randn))
             )  # [numbers will be smaller for places where chain_M = 0.0 and higher for places where chain_M = 1.0]
@@ -560,10 +555,10 @@ class ProteinMPNN(torch.nn.Module):
 
             logits = self.W_out(h_V)
             log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
-            
-            log_probs_out[:,idx,:] = log_probs[:,idx,:]
-            logits_out[:,idx,:] = logits[:,idx,:]
-            decoding_order_out[:,idx,:] = decoding_order
+
+            log_probs_out[:, idx, :] = log_probs[:, idx, :]
+            logits_out[:, idx, :] = logits[:, idx, :]
+            decoding_order_out[:, idx, :] = decoding_order
 
         output_dict = {
             "S": S_true,
@@ -573,24 +568,13 @@ class ProteinMPNN(torch.nn.Module):
         }
         return output_dict
 
-
     def score(self, feature_dict, use_sequence: bool):
         B_decoder = feature_dict["batch_size"]
-        S_true = feature_dict[
-            "S"
-        ]
-        mask = feature_dict[
-            "mask"
-        ]
-        chain_mask = feature_dict[
-            "chain_mask"
-        ]
-        randn = feature_dict[
-            "randn"
-        ]
-        symmetry_list_of_lists = feature_dict[
-            "symmetry_residues"
-        ]
+        S_true = feature_dict["S"]
+        mask = feature_dict["mask"]
+        chain_mask = feature_dict["chain_mask"]
+        randn = feature_dict["randn"]
+        symmetry_list_of_lists = feature_dict["symmetry_residues"]
         B, L = S_true.shape
         device = S_true.device
 
@@ -663,7 +647,7 @@ class ProteinMPNN(torch.nn.Module):
         h_EXV_encoder_fw = mask_fw * h_EXV_encoder
         if not use_sequence:
             for layer in self.decoder_layers:
-                h_V = layer(h_V, h_EXV_encoder_fw, mask)          
+                h_V = layer(h_V, h_EXV_encoder_fw, mask)
         else:
             for layer in self.decoder_layers:
                 # Masked positions attend to encoder information, unmasked see.
@@ -681,7 +665,7 @@ class ProteinMPNN(torch.nn.Module):
             "decoding_order": decoding_order,
         }
         return output_dict
-    
+
     def sample_specificMPNN(self, feature_dict):
         # xyz_37 = feature_dict["xyz_37"] #[B,L,37,3] - xyz coordinates for all atoms if needed
         # xyz_37_m = feature_dict["xyz_37_m"] #[B,L,37] - mask for all coords
@@ -821,9 +805,9 @@ class ProteinMPNN(torch.nn.Module):
                     t[:, None, None].repeat(1, 1, h_V_stack[-1].shape[-1]),
                 )[:, 0]
                 logits = self.W_out(h_V_t)  # [B,21]
-                print(f'resi_{t[0].item()}')
-                print(f'orig_logits : {logits}')
- 
+                print(f"resi_{t[0].item()}")
+                print(f"orig_logits : {logits}")
+
                 # # if sample 15, ANG -> A73
                 # if t[0].item() == 72:
                 #     logits = torch.tensor([1.8653225e+00, -2.2367339e+00, -8.6854577e-02, 2.5135741e+00, -2.3738875e+00, -2.3847268e+00, -4.2159452e+00, -1.5851200e+00, -2.3918209e+00, -2.2027655e+00, 1.2181121e+00, -2.9346881e+00, -1.6218319e+00, 3.3016453e+00, -1.5039803e+00, 1.1551526e+00, 1.6397400e+00, -5.3830147e-01, -1.5933523e+00, -2.1104147e+00, -1.9358751e+00], device=logits.device).unsqueeze(0).repeat(logits.size(0), 1)
@@ -854,9 +838,38 @@ class ProteinMPNN(torch.nn.Module):
                 #     print(f'replacement_logits : {logits}')
                 # if sample 48, GNT -> A73
                 if t[0].item() == 72:
-                    logits = torch.tensor([4.3734016, -1.4018054, -1.3981282, 0.46489084, -2.1683087, 0.2217983, -1.4724445, -3.707965, -0.37845337, 0.2452451, -0.65232444, -0.9379787, -2.4795513, 0.03454065, -0.9415224, 0.9133005, -3.0185208, -4.0844, -1.9086092, -2.2000825, -2.155334], device=logits.device).unsqueeze(0).repeat(logits.size(0), 1)
-                    print(f'resi_{t[0].item()}')
-                    print(f'replacement_logits : {logits}')
+                    logits = (
+                        torch.tensor(
+                            [
+                                4.3734016,
+                                -1.4018054,
+                                -1.3981282,
+                                0.46489084,
+                                -2.1683087,
+                                0.2217983,
+                                -1.4724445,
+                                -3.707965,
+                                -0.37845337,
+                                0.2452451,
+                                -0.65232444,
+                                -0.9379787,
+                                -2.4795513,
+                                0.03454065,
+                                -0.9415224,
+                                0.9133005,
+                                -3.0185208,
+                                -4.0844,
+                                -1.9086092,
+                                -2.2000825,
+                                -2.155334,
+                            ],
+                            device=logits.device,
+                        )
+                        .unsqueeze(0)
+                        .repeat(logits.size(0), 1)
+                    )
+                    print(f"resi_{t[0].item()}")
+                    print(f"replacement_logits : {logits}")
                 # # if sample 48, GTN -> A72
                 # if t[0].item() == 71:
                 #     logits = torch.tensor([1.5637765, -0.7571511, -0.8917271, -0.99662393, -0.8118849, 1.2591904, -0.65266824, -0.7718647, -0.9880666, -0.9568907, -0.8566468, -0.45909274, -0.3920051, -1.1122653, -0.987546, 4.4125814, -0.5531881, -0.943648, -0.91969335, -0.9332515, -1.0163097], device=logits.device).unsqueeze(0).repeat(logits.size(0), 1)
@@ -880,22 +893,24 @@ class ProteinMPNN(torch.nn.Module):
                 #     logits = torch.tensor([2.7506986, -1.4414637, -1.4589827, 0.46489084, -2.1683087, -0.7576733, -1.608316, -3.7683105, -0.47512192, -0.13768864, -0.76147485, -0.9992662, -2.522714, 0.03454065, -1.0597317, 0.6754938, -3.0185208, -4.1809793, -1.9086092, -2.265163, -2.155334], device=logits.device).unsqueeze(0).repeat(logits.size(0), 1)
                 #     print(f'resi_{t[0].item()}')
                 #     print(f'replacement_logits : {logits}')
-                
+
                 log_probs = torch.nn.functional.log_softmax(logits, dim=-1)  # [B,21]
-                
-                if float(temperature) == 0.0: ######## changed to get T=0 as input as well.
+
+                if (
+                    float(temperature) == 0.0
+                ):  ######## changed to get T=0 as input as well.
                     # probs = torch.nn.functional.softmax(
                     # (logits + bias_t), dim=-1
                     # ) # [B,21]
                     probs = torch.zeros_like(logits)
                     max_idx = torch.argmax(logits + bias_t, dim=-1)
-                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0) # [B,21]
-                  
+                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0)  # [B,21]
+
                 else:
                     probs = torch.nn.functional.softmax(
                         (logits + bias_t) / temperature, dim=-1
                     )  # [B,21]
-                    
+
                 probs_sample = probs[:, :20] / torch.sum(
                     probs[:, :20], dim=-1, keepdim=True
                 )  # hard omit X #[B,20]
@@ -1033,16 +1048,17 @@ class ProteinMPNN(torch.nn.Module):
                     ).float()  # [B,21]
                     total_logits += symmetry_weights[t] * logits
 
-        
-                if float(temperature) == 0.0: ######## changed to get T=0 as input as well. In this case, always get the max prob aa
+                if (
+                    float(temperature) == 0.0
+                ):  ######## changed to get T=0 as input as well. In this case, always get the max prob aa
                     probs = torch.zeros_like(logits)
                     max_idx = torch.argmax(logits + bias_t, dim=-1)
-                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0) # [B,21]
+                    probs.scatter_(1, max_idx.unsqueeze(-1), 1.0)  # [B,21]
                 else:
                     probs = torch.nn.functional.softmax(
                         (total_logits + bias_t) / temperature, dim=-1
                     )  # [B,21]
-                
+
                 probs_sample = probs[:, :20] / torch.sum(
                     probs[:, :20], dim=-1, keepdim=True
                 )  # hard omit X #[B,20]

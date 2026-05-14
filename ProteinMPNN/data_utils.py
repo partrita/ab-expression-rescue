@@ -232,11 +232,13 @@ def get_score(S: torch.Tensor, log_probs: torch.Tensor, mask: torch.Tensor):
     )
     return average_loss, loss_per_residue
 
-def elem_from_atomname(name: str) -> str: 
-    n = name.strip().upper() 
-    if n.startswith("SE"): # selenomethionine 
-        return "SE" 
+
+def elem_from_atomname(name: str) -> str:
+    n = name.strip().upper()
+    if n.startswith("SE"):  # selenomethionine
+        return "SE"
     return n[0]
+
 
 def write_full_PDB(
     save_path: str,
@@ -522,7 +524,7 @@ def parse_PDB(
     device: str = "cpu",
     chains: list = [],
     parse_all_atoms: bool = False,
-    parse_atoms_with_zero_occupancy: bool = False
+    parse_atoms_with_zero_occupancy: bool = False,
 ):
     """
     input_path : path for the input PDB
