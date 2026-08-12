@@ -12,6 +12,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/argon2-cffi-bindings-25.1.0-py310h7c4b9e2_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/backports.zstd-1.4.0-py310h69bd2ac_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/biopython-1.79-py310h5764c6d_3.tar.bz2
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/biotite-0.39.0-py310hcc13569_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/brotli-1.2.0-hed03a55_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/brotli-bin-1.2.0-hb03c661_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/brotli-python-1.2.0-py310hba01987_1.conda
@@ -126,6 +127,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/mkl-2025.3.1-h0e700b2_12.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/mpc-1.4.0-he0a73b1_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/mpfr-4.2.2-he0a73b1_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/msgpack-python-1.1.2-py310h03d9f68_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/nccl-2.30.4.1-h4d09622_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.6-hdb14827_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-1.23.5-py310h53a5b5f_0.conda
@@ -392,6 +394,22 @@ packages:
   - pkg:pypi/biopython?source=hash-mapping
   size: 2808710
   timestamp: 1666879319719
+- conda: https://conda.anaconda.org/conda-forge/linux-64/biotite-0.39.0-py310hcc13569_0.conda
+  sha256: 16a03d4d1bf91ea3135664909195041d943fd4e818bbda03c2a668c3527d1b1c
+  md5: 4e7b77e864e013d95c7ae69e8495b9d1
+  depends:
+  - libgcc-ng >=12
+  - libstdcxx-ng >=12
+  - msgpack-python
+  - networkx >=2.0
+  - numpy >=1.22.4,<2.0a0
+  - python >=3.10,<3.11.0a0
+  - python_abi 3.10.* *_cp310
+  - requests >=2.12
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 37150634
+  timestamp: 1704720539606
 - conda: https://conda.anaconda.org/conda-forge/linux-64/brotli-1.2.0-hed03a55_1.conda
   sha256: e511644d691f05eb12ebe1e971fd6dc3ae55a4df5c253b4e1788b789bdf2dfa6
   md5: 8ccf913aaba749a5496c17629d859ed1
@@ -1958,6 +1976,19 @@ packages:
   purls: []
   size: 730422
   timestamp: 1773413915171
+- conda: https://conda.anaconda.org/conda-forge/linux-64/msgpack-python-1.1.2-py310h03d9f68_1.conda
+  sha256: 61cf3572d6afa3fa711c5f970a832783d2c281facb7b3b946a6b71a0bac2c592
+  md5: 5eea9d8f8fcf49751dab7927cb0dfc3f
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=14
+  - libstdcxx >=14
+  - python >=3.10,<3.11.0a0
+  - python_abi 3.10.* *_cp310
+  license: Apache-2.0
+  license_family: Apache
+  size: 95105
+  timestamp: 1762504073388
 - conda: https://conda.anaconda.org/conda-forge/linux-64/nccl-2.30.4.1-h4d09622_0.conda
   sha256: cda7e6c516e0af5d99721f152860c8793a709ba5c2c2cb209886b17d5f86e663
   md5: 5f6cad41cf88e7938996445f694d76c6
@@ -3004,8 +3035,6 @@ packages:
   - scipy
   license: MIT
   license_family: MIT
-  purls:
-  - pkg:pypi/adjusttext?source=hash-mapping
   size: 18280
   timestamp: 1730725098822
 - conda: https://conda.anaconda.org/conda-forge/noarch/anyio-4.13.0-pyhcf101f3_0.conda
